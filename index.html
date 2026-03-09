@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MAR RNG</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+text-align:center;
+color:white;
+background:linear-gradient(135deg,#ff6b6b,#6a5acd,#00c9ff);
+height:100vh;
+}
+
+h1{
+font-size:55px;
+margin-top:20px;
+}
+
+#game{
+width:520px;
+margin:auto;
+margin-top:40px;
+padding:25px;
+border-radius:18px;
+background:rgba(0,0,0,0.25);
+backdrop-filter:blur(12px);
+box-shadow:0 0 40px rgba(0,0,0,0.4);
+}
+
+button{
+padding:12px 22px;
+font-size:18px;
+margin:6px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+background:linear-gradient(45deg,#ffd166,#ff9f1c);
+font-weight:bold;
+}
+
+button:hover{
+transform:scale(1.08);
+}
+
+#wheel{
+font-size:38px;
+height:80px;
+margin-top:20px;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.inventory{
+margin-top:20px;
+height:160px;
+overflow:auto;
+background:rgba(255,255,255,0.1);
+border-radius:10px;
+padding:8px;
+}
+
+.item{
+padding:6px;
+cursor:pointer;
+}
+
+.item:hover{
+background:rgba(255,255,255,0.2);
+}
+
+#equipped{
+margin-top:10px;
+font-size:20px;
+color:#ffe066;
+}
+
+#stats{
+margin-top:15px;
+}
+
+.shake{
+animation:shake .5s;
+}
+
+@keyframes shake{
+0%{transform:translateX(0)}
+25%{transform:translateX(10px)}
+50%{transform:translateX(-10px)}
+75%{transform:translateX(10px)}
+100%{transform:translateX(0)}
+}
+
+/* animated rarity colors */
+
+.common{color:white}
+.uncommon{color:#7fff7f}
+.rare{color:#4da6ff}
+.epic{color:#c77dff}
+.legendary{color:#ffd166}
+.mythic{color:#ff4d6d}
+
+.god{
+background:linear-gradient(90deg,red,orange,yellow,green,blue,purple);
+-webkit-background-clip:text;
+color:transparent;
+animation:rainbow 3s linear infinite;
+}
+
+@keyframes rainbow{
+0%{filter:hue-rotate(0deg)}
+100%{filter:hue-rotate(360deg)}
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🎲 MAR RNG</h1>
+
+<div id="game">
+
+<div id="wheel">PRESS ROLL</div>
+
+<button onclick="roll()">ROLL</button>
+<button onclick="toggleAuto()">AUTO</button>
+
+<div id="equipped">Equipped: None</div>
+
+<div id="stats">
+Rolls: <span id="rollCount">0</span><br>
+Rarest: <span id="rarest">None</span>
+</div>
+
+<h3>Inventory</h3>
+<div class="inventory" id="inventory"></div>
+
+</div>
+
+<script>
+
+let rolling=false
+let auto=false
+let rolls=0
+let inventory=[]
+let rarestRank=0
+
+/* 100+ unique rolls */
+
+let rarities=[
+{name:"Rusty Coin",tier:"common"},
+{name:"Wood Charm",tier:"common"},
+{name:"Lucky Feather",tier:"common"},
+{name:"Stone Relic",tier:"common"},
+{name:"Iron Token",tier:"common"},
+
+{name:"Silver Dice",tier:"uncommon"},
+{name:"Storm Feather",tier:"uncommon"},
+{name:"Ocean Pearl",tier:"uncommon"},
+{name:"Forest Spirit",tier:"uncommon"},
+{name:"Crystal Bone",tier:"uncommon"},
+
+{name:"Golden Dice",tier:"rare"},
+{name:"Lightning Core",tier:"rare"},
+{name:"Frozen Gem",tier:"rare"},
+{name:"Phantom Orb",tier:"rare"},
+{name:"Shadow Ember",tier:"rare"},
+
+{name:"Dragon Scale",tier:"epic"},
+{name:"Solar Core",tier:"epic"},
+{name:"Lunar Relic",tier:"epic"},
+{name:"Storm Crystal",tier:"epic"},
+{name:"Titan Bone",tier:"epic"},
+
+{name:"Infinity Orb",tier:"legendary"},
+{name:"Celestial Wing",tier:"legendary"},
+{name:"Void Crown",tier:"legendary"},
+{name:"Galaxy Heart",tier:"legendary"},
+{name:"Chrono Relic",tier:"legendary"},
+
+{name:"Multiverse Core",tier:"mythic"},
+{name:"Reality Breaker",tier:"mythic"},
+{name:"Cosmic Throne",tier:"mythic"},
+{name:"Dimension Key",tier:"mythic"},
+{name:"Time Fracture",tier:"mythic"},
+
+{name:"Omni God",tier:"god"},
+{name:"Eternal Creator",tier:"god"},
+{name:"Absolute Infinity",tier:"god"},
+{name:"Universal King",tier:"god"},
+{name:"Origin Deity",tier:"god"}
+]
+
+/* auto-generate extra to reach 120 */
+
+for(let i=rarities.length;i<120;i++){
+rarities.push({
+name:"Myth Artifact "+(i+1),
+tier:"legendary"
+})
+}
+
+function randomItem(){
+return rarities[Math.floor(Math.random()*rarities.length)]
+}
+
+/* wheel animation */
+
+function spinWheel(callback){
+
+let spins=0
+let wheel=document.getElementById("wheel")
+
+let interval=setInterval(()=>{
+
+let item=randomItem()
+
+wheel.innerText=item.name
+wheel.className=item.tier
+
+spins++
+
+if(spins>25){
+clearInterval(interval)
+callback(item)
+}
+
+},70)
+
+}
+
+function roll(){
+
+if(rolling) return
+
+rolling=true
+
+spinWheel(result=>{
+
+let wheel=document.getElementById("wheel")
+
+wheel.innerText=result.name
+wheel.className=result.tier
+
+inventory.push(result.name)
+
+saveGame()
+
+updateInventory()
+
+rolls++
+document.getElementById("rollCount").innerText=rolls
+
+if(result.tier=="god"){
+
+document.body.classList.add("shake")
+
+setTimeout(()=>{
+document.body.classList.remove("shake")
+},600)
+
+}
+
+if(!document.getElementById("rarest").innerText.includes("god")){
+document.getElementById("rarest").innerText=result.name
+}
+
+rolling=false
+
+})
+
+}
+
+function updateInventory(){
+
+let inv=document.getElementById("inventory")
+inv.innerHTML=""
+
+inventory.forEach(item=>{
+
+let div=document.createElement("div")
+div.className="item"
+div.innerText=item
+
+div.onclick=()=>{
+document.getElementById("equipped").innerText="Equipped: "+item
+}
+
+inv.appendChild(div)
+
+})
+
+}
+
+/* auto roll */
+
+function toggleAuto(){
+
+auto=!auto
+
+if(auto) autoRoll()
+
+}
+
+function autoRoll(){
+
+if(!auto) return
+
+roll()
+
+setTimeout(autoRoll,1500)
+
+}
+
+/* SAVE SYSTEM */
+
+function saveGame(){
+
+localStorage.setItem("mar_rng_inventory",JSON.stringify(inventory))
+localStorage.setItem("mar_rng_rolls",rolls)
+
+}
+
+function loadGame(){
+
+let inv=localStorage.getItem("mar_rng_inventory")
+
+if(inv){
+inventory=JSON.parse(inv)
+}
+
+let r=localStorage.getItem("mar_rng_rolls")
+
+if(r){
+rolls=parseInt(r)
+}
+
+document.getElementById("rollCount").innerText=rolls
+
+updateInventory()
+
+}
+
+loadGame()
+
+</script>
+
+</body>
+</html>
